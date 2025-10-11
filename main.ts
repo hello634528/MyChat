@@ -1,4 +1,4 @@
-// my-chat-app/main.ts
+// my-chat-app/main.ts 
 
 import { serve } from "std/http/server.ts";
 import { serveDir } from "std/http/file_server.ts";
@@ -84,6 +84,7 @@ async function handleWs(socket: WebSocket, username: string) {
         break;
       }
 
+      // ！！！终极修复：重构消息发送逻辑
       case 'send_message': {
         const { chatId, content } = payload;
         const [user1, user2] = chatId.split('-');
@@ -91,17 +92,21 @@ async function handleWs(socket: WebSocket, username: string) {
         const messageId = crypto.randomUUID();
         const timestamp = Date.now();
         const encryptedContent = await encrypt(content, encryptionKey);
-        const message = { id: messageId, chatId, sender: username, contentType: 'encrypted-text', content: encryptedContent, timestamp };
-        await kv.set(["messages", chatId, timestamp, messageId], message);
-        sendToUser(recipient, { type: "new_message", payload: { ...message, content } });
-        const senderSockets = userSockets.get(username);
-        if (senderSockets) {
-            for (const s of senderSockets) {
-                if (s !== socket && s.readyState === WebSocket.OPEN) {
-                    s.send(JSON.stringify({ type: "new_message", payload: { ...message, content, isEcho: true } }));
-                }
-            }
-        }
+        
+        const baseMessage = { id: messageId, chatId, sender: username, contentType: 'encrypted-text', timestamp };
+        
+        // 1. 存储到数据库的是加密内容
+        await kv.set(["messages", chatId, timestamp, messageId], { ...baseMessage, content: encryptedContent });
+        
+        // 2. 准备要广播的消息，内容是解密的
+        const messageForBroadcast = { ...baseMessage, content };
+        
+        // 3. 向接收方的所有设备广播普通消息
+        sendToUser(recipient, { type: "new_message", payload: messageForBroadcast });
+        
+        // 4. 向发送方的所有设备广播带 isEcho 标记的回声消息
+        sendToUser(username, { type: "new_message", payload: { ...messageForBroadcast, isEcho: true } });
+        
         break;
       }
       
@@ -178,12 +183,9 @@ async function handleWs(socket: WebSocket, username: string) {
         break;
       }
       
-      // ！！！新增：删除账户的终极逻辑
       case 'delete_account': {
         console.log(`[用户: ${username}] 请求删除账户`);
         const atomicOp = kv.atomic();
-        
-        // 1. 从所有好友的好友列表中移除自己，并删除聊天记录
         const friendsEntry = await kv.get<string[]>(["friends", username]);
         if (friendsEntry.value) {
             for (const friend of friendsEntry.value) {
@@ -194,30 +196,17 @@ async function handleWs(socket: WebSocket, username: string) {
                 }
                 const chatId = getChatId(username, friend);
                 const iter = kv.list({ prefix: ["messages", chatId] });
-                for await (const entry of iter) {
-                    atomicOp.delete(entry.key);
-                }
-                // 通知好友
+                for await (const entry of iter) { atomicOp.delete(entry.key); }
                 sendToUser(friend, { type: 'friend_deleted', payload: username });
             }
         }
-        
-        // 2. 删除自己的所有数据
         atomicOp.delete(["users", username]);
         atomicOp.delete(["friends", username]);
         atomicOp.delete(["requests", username]);
-        
-        // 3. 提交所有数据库更改
         await atomicOp.commit();
-        
-        // 4. 通知此设备操作成功，然后关闭所有连接
         socket.send(JSON.stringify({ type: 'account_deleted' }));
         const userConns = userSockets.get(username);
-        if (userConns) {
-            for (const s of userConns) {
-                s.close();
-            }
-        }
+        if (userConns) { for (const s of userConns) { s.close(); } }
         console.log(`[用户: ${username}] 账户已成功删除`);
         break;
       }
