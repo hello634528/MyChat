@@ -275,4 +275,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 启动应用 ---
     initialize();
+
 });
