@@ -27,9 +27,6 @@ body {
     font-family: var(--font-family);
     background-color: var(--bg-color);
     margin: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     height: 100vh;
     color: var(--text-color);
     overflow: hidden;
@@ -39,32 +36,33 @@ body {
     width: 100%;
     height: 100%;
     max-width: 1100px;
-    max-height: 90vh;
+    margin: auto;
+    max-height: 100vh;
     background-color: var(--chat-window-bg);
-    border-radius: var(--border-radius);
-    box-shadow: 0 4px 25px rgba(0,0,0,0.08);
     display: flex;
     overflow: hidden;
     position: relative;
 }
+@media (min-width: 769px) {
+    #app-container {
+        max-height: 90vh;
+        border-radius: var(--border-radius);
+        box-shadow: 0 4px 25px rgba(0,0,0,0.08);
+    }
+}
 
 /* --- Sidebar --- */
-.sidebar {
-    width: 300px;
-    flex-shrink: 0;
-    background-color: var(--sidebar-bg);
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid var(--border-color);
-    transition: transform 0.3s ease-in-out;
-}
-.user-profile { display: flex; align-items: center; padding: 20px; font-size: 1.1em; font-weight: 500; }
-.user-profile i { font-size: 1.5em; margin-right: 15px; }
-.sidebar-actions { padding: 0 20px 20px; }
+.sidebar { width: 300px; flex-shrink: 0; background-color: var(--sidebar-bg); display: flex; flex-direction: column; border-right: 1px solid var(--border-color); transition: transform 0.3s ease-in-out; }
+.user-profile { display: flex; align-items: center; justify-content: space-between; padding: 20px; font-size: 1.1em; font-weight: 500; flex-shrink: 0; }
+.user-info { display: flex; align-items: center; }
+.user-info i { font-size: 1.5em; margin-right: 15px; }
+.icon-btn { background: none; border: none; font-size: 1.2em; color: var(--text-color-light); cursor: pointer; padding: 5px; border-radius: 50%; width: 32px; height: 32px; }
+.icon-btn:hover { background-color: var(--hover-bg); }
+.sidebar-actions { padding: 0 20px 20px; flex-shrink: 0; }
 .action-btn { width: 100%; padding: 10px; border: none; border-radius: var(--border-radius); background-color: var(--primary-color); color: white; font-size: 1em; cursor: pointer; transition: background-color 0.2s; }
 .action-btn:hover { background-color: var(--primary-color-dark); }
-.sidebar-section { padding: 0 0 15px; }
-.section-header { padding: 10px 20px; font-size: 0.9em; font-weight: 500; color: var(--text-color-light); text-transform: uppercase; }
+.sidebar-section { padding: 0 0 15px; display: flex; flex-direction: column; min-height: 0; }
+.section-header { padding: 10px 20px; font-size: 0.9em; font-weight: 500; color: var(--text-color-light); text-transform: uppercase; flex-shrink: 0; }
 .list-container { flex-grow: 1; overflow-y: auto; }
 .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; cursor: pointer; transition: background-color 0.2s; }
 .list-item:hover { background-color: var(--hover-bg); }
@@ -75,16 +73,16 @@ body {
 .notification-dot { width: 8px; height: 8px; background-color: var(--primary-color); border-radius: 50%; margin-left: auto; }
 
 /* --- Chat Window --- */
-.chat-window { flex-grow: 1; display: flex; flex-direction: column; background-color: var(--chat-window-bg); }
+.chat-window { flex-grow: 1; display: flex; flex-direction: column; background-color: var(--chat-window-bg); height: 100%; }
 #welcome-screen { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--text-color-light); text-align: center; }
 #welcome-screen i { font-size: 4em; margin-bottom: 20px; }
+#chat-area { display: flex; flex-direction: column; flex-grow: 1; overflow: hidden; }
 #chat-area.hidden, .hidden { display: none !important; }
 .chat-window .header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; height: 65px; font-weight: 500; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
 .header-action-btn { background: none; border: none; font-size: 1.2em; color: var(--text-color-light); cursor: pointer; padding: 10px; }
 #delete-friend-btn:hover { color: var(--error-color); }
 .mobile-only { display: none; }
-.messages { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.messages { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; }
 .message { max-width: 70%; margin-bottom: 15px; animation: fadeIn 0.3s ease-out; word-wrap: break-word; }
 .message.mine { align-self: flex-end; background-color: var(--my-message-bg); border-radius: 15px 15px 4px 15px; }
 .message.theirs { align-self: flex-start; background-color: var(--their-message-bg); border-radius: 15px 15px 15px 4px; }
@@ -98,15 +96,23 @@ body {
 #send-button { background-color: var(--primary-color); color: white; border: none; border-radius: 50%; width: 45px; height: 45px; margin-left: 10px; cursor: pointer; transition: background-color 0.2s; font-size: 1.2em; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
 #send-button:hover { background-color: var(--primary-color-dark); }
 
-/* --- Modal, Context Menu, Toast --- */
+/* --- Modals, Context Menu, Toast --- */
 .modal-wrapper { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: center; z-index: 1001; }
 .modal-content { background: white; padding: 25px; border-radius: var(--border-radius); box-shadow: 0 5px 15px rgba(0,0,0,0.2); width: 90%; max-width: 400px; }
 .modal-content h3 { margin-top: 0; }
+.modal-content hr { border: none; border-top: 1px solid var(--border-color); margin: 20px 0; }
 #add-friend-form input { width: 100%; box-sizing: border-box; padding: 10px; margin-bottom: 15px; border: 1px solid var(--border-color); border-radius: 5px; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
-.modal-actions button { padding: 8px 15px; border-radius: 5px; cursor: pointer; }
-.modal-actions button[type="submit"] { background-color: var(--primary-color); color: white; border: none; }
-.modal-actions button[type="button"] { background-color: #ecf0f1; color: var(--text-color); border: 1px solid var(--border-color); }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.modal-actions button { padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: 500; }
+.modal-actions button[type="submit"], #save-settings-btn { background-color: var(--primary-color); color: white; border: none; }
+.modal-actions .cancel-btn { background-color: #ecf0f1; color: var(--text-color); border: 1px solid var(--border-color); }
+.setting-item { display: flex; flex-direction: column; gap: 8px; }
+.setting-item label { font-weight: 500; }
+.setting-item input { padding: 8px; border: 1px solid var(--border-color); border-radius: 5px; }
+.setting-item small { font-size: 0.8em; color: var(--text-color-light); }
+.danger-zone { border: 1px solid var(--error-color); border-radius: var(--border-radius); padding: 15px; background-color: #fdecea; }
+.danger-zone h4 { margin: 0 0 10px; color: var(--error-color); }
+.danger-btn { width: 100%; background-color: var(--error-color); color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; }
 .context-menu { position: absolute; display: none; background: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.15); padding: 5px 0; z-index: 1000; }
 .context-menu ul { list-style: none; margin: 0; padding: 0; }
 .context-menu li { padding: 8px 15px; cursor: pointer; }
@@ -116,42 +122,12 @@ body {
 
 /* --- 手机端响应式样式 --- */
 @media (max-width: 768px) {
-    #app-container {
-        max-height: 100vh;
-        border-radius: 0;
-        flex-direction: column; /* 即使在JS控制下，也预设为列布局 */
-    }
-    .sidebar, .chat-window {
-        width: 100%;
-        height: 100%;
-        position: absolute; /* 使用绝对定位实现切换 */
-        top: 0;
-        left: 0;
-        transition: transform 0.3s ease-in-out;
-    }
-    .sidebar {
-        transform: translateX(0);
-        z-index: 10;
-    }
-    .chat-window {
-        transform: translateX(100%);
-        z-index: 20;
-    }
-    #app-container.mobile-chat-visible .sidebar {
-        transform: translateX(-100%);
-    }
-    #app-container.mobile-chat-visible .chat-window {
-        transform: translateX(0);
-    }
-    .mobile-only {
-        display: block;
-    }
-    .chat-window .header {
-        justify-content: space-between;
-    }
-    #chat-header-title {
-        flex-grow: 1;
-        text-align: center;
-        margin: 0 10px;
-    }
+    .sidebar, .chat-window { width: 100%; height: 100%; position: absolute; top: 0; left: 0; transition: transform 0.3s ease-in-out; }
+    .sidebar { transform: translateX(0); z-index: 10; }
+    .chat-window { transform: translateX(100%); z-index: 20; }
+    #app-container.mobile-chat-visible .sidebar { transform: translateX(-100%); }
+    #app-container.mobile-chat-visible .chat-window { transform: translateX(0); }
+    .mobile-only { display: block; }
+    .chat-window .header { justify-content: space-between; }
+    #chat-header-title { flex-grow: 1; text-align: center; margin: 0 10px; }
 }
