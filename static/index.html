@@ -14,8 +14,12 @@
         <!-- 左侧边栏 -->
         <div class="sidebar">
             <div class="user-profile">
-                <i class="fa-solid fa-user-circle"></i>
-                <span id="username-display">未登录</span>
+                <div class="user-info">
+                    <i class="fa-solid fa-user-circle"></i>
+                    <span id="username-display">未登录</span>
+                </div>
+                <!-- ！！！新增：设置按钮 -->
+                <button id="settings-btn" class="icon-btn" title="设置"><i class="fa-solid fa-cog"></i></button>
             </div>
             <div class="sidebar-actions">
                 <button id="add-friend-btn" class="action-btn"><i class="fa-solid fa-user-plus"></i> 添加好友</button>
@@ -35,12 +39,11 @@
             <div id="welcome-screen">
                 <i class="fa-solid fa-comments"></i>
                 <h2>欢迎来到 Deno 私密聊天</h2>
-                <p>从左侧选择一位好友开始聊天</p >
+                <p>从左侧选择一位好友开始聊天</p>
             </div>
 
             <div id="chat-area" class="hidden">
                 <div class="header">
-                    <!-- 手机端返回按钮 -->
                     <button id="back-to-list-btn" class="header-action-btn mobile-only" title="返回列表"><i class="fa-solid fa-chevron-left"></i></button>
                     <span id="chat-header-title"></span>
                     <button id="delete-friend-btn" class="header-action-btn" title="删除好友"><i class="fa-solid fa-user-minus"></i></button>
@@ -61,12 +64,35 @@
             <form id="add-friend-form">
                 <input type="text" id="add-friend-input" placeholder="输入对方的用户名" required>
                 <div class="modal-actions">
-                    <button type="button" id="cancel-add-friend">取消</button>
+                    <button type="button" class="cancel-btn">取消</button>
                     <button type="submit">发送请求</button>
                 </div>
             </form>
         </div>
     </div>
+    
+    <!-- ！！！新增：设置模态框 -->
+    <div id="settings-modal" class="modal-wrapper hidden">
+        <div class="modal-content">
+            <h3>设置</h3>
+            <div class="setting-item">
+                <label for="heartbeat-interval-input">心跳间隔 (秒)</label>
+                <input type="number" id="heartbeat-interval-input" min="3" max="60" placeholder="建议 5-30">
+                <small>设置客户端向服务器发送存活信号的频率，过低可能增加消耗。</small>
+            </div>
+            <hr>
+            <div class="setting-item danger-zone">
+                <h4>危险区域</h4>
+                <button id="delete-account-btn" class="danger-btn">删除我的账户</button>
+                <small>此操作不可逆，将永久删除你的所有好友和聊天记录。</small>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="cancel-btn">关闭</button>
+                <button type="button" id="save-settings-btn">保存</button>
+            </div>
+        </div>
+    </div>
+
     <div id="context-menu" class="context-menu">
         <ul><li id="recall-option">撤回消息</li></ul>
     </div>
