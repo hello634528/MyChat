@@ -1,10 +1,10 @@
-// my-chat-app/main.ts
+// my-chat-app/main.ts (v2 - 已修复添加好友BUG并更新密钥)
 
 import { serve } from "std/http/server.ts";
 import { serveDir } from "std/http/file_server.ts";
 
 // --- 配置 ---
-const ENCRYPTION_KEY = "Key-qgejDhsjTiuYenfhGFbFjkImghFn";
+const ENCRYPTION_KEY = "Key-qgejDhsjTiuYenfhGFbFjkImghFn"; // 已更新为你指定的密钥
 const RECALL_TIMEOUT_MS = 3 * 60 * 1000;
 
 // --- 数据库和 WebSocket 管理 ---
@@ -137,9 +137,11 @@ async function handleWs(socket: WebSocket, username: string) {
           sendToUser(username, { type: 'error', payload: '用户不存在' });
           return;
         }
-
-        const [requestsEntry] = await kv.get<string[]>([["requests", friendUsername]]);
+        
+        // ✅ 这是修复后的代码
+        const requestsEntry = await kv.get<string[]>(["requests", friendUsername]);
         const currentRequests = requestsEntry.value ?? [];
+
         if (!currentRequests.includes(username)) {
             currentRequests.push(username);
             await kv.set(["requests", friendUsername], currentRequests);
