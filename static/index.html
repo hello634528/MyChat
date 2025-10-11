@@ -34,12 +34,14 @@
         <div class="chat-window">
             <div id="welcome-screen">
                 <i class="fa-solid fa-comments"></i>
-                <h2>欢迎来到MyChat</h2>
-                <p>从左侧选择一位好友开始聊天</p>
+                <h2>欢迎来到 Deno 私密聊天</h2>
+                <p>从左侧选择一位好友开始聊天</p >
             </div>
 
             <div id="chat-area" class="hidden">
                 <div class="header">
+                    <!-- 手机端返回按钮 -->
+                    <button id="back-to-list-btn" class="header-action-btn mobile-only" title="返回列表"><i class="fa-solid fa-chevron-left"></i></button>
                     <span id="chat-header-title"></span>
                     <button id="delete-friend-btn" class="header-action-btn" title="删除好友"><i class="fa-solid fa-user-minus"></i></button>
                 </div>
@@ -52,7 +54,7 @@
         </div>
     </div>
     
-    <!-- 添加好友弹窗 -->
+    <!-- 弹窗和提示 -->
     <div id="add-friend-modal" class="modal-wrapper hidden">
         <div class="modal-content">
             <h3>添加好友</h3>
@@ -65,13 +67,9 @@
             </form>
         </div>
     </div>
-    
-    <!-- 右键菜单 -->
     <div id="context-menu" class="context-menu">
         <ul><li id="recall-option">撤回消息</li></ul>
     </div>
-
-    <!-- 提示框 -->
     <div id="toast" class="toast"></div>
 
     <script src="client.js"></script>
