@@ -159,4 +159,5 @@ body {
 .context-menu li { padding: 8px 15px; cursor: pointer; }
 .context-menu li:hover { background-color: #f0f0f0; }
 .toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); background-color: rgba(44, 62, 80, 0.9); color: white; padding: 12px 25px; border-radius: 25px; transition: bottom 0.5s ease; z-index: 2000; }
+
 .toast.show { bottom: 30px; }
