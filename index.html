@@ -1,0 +1,79 @@
+<!-- my-chat-app/static/index.html -->
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deno 私密聊天</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <div id="app-container">
+        <!-- 左侧边栏 -->
+        <div class="sidebar">
+            <div class="user-profile">
+                <i class="fa-solid fa-user-circle"></i>
+                <span id="username-display">未登录</span>
+            </div>
+            <div class="sidebar-actions">
+                <button id="add-friend-btn" class="action-btn"><i class="fa-solid fa-user-plus"></i> 添加好友</button>
+            </div>
+            <div class="sidebar-section">
+                <div class="section-header">好友请求</div>
+                <div id="friend-requests-list" class="list-container"></div>
+            </div>
+            <div class="sidebar-section">
+                <div class="section-header">好友列表</div>
+                <div id="friend-list" class="list-container"></div>
+            </div>
+        </div>
+
+        <!-- 右侧聊天窗口 -->
+        <div class="chat-window">
+            <div id="welcome-screen">
+                <i class="fa-solid fa-comments"></i>
+                <h2>欢迎来到MyChat</h2>
+                <p>从左侧选择一位好友开始聊天</p>
+            </div>
+
+            <div id="chat-area" class="hidden">
+                <div class="header">
+                    <span id="chat-header-title"></span>
+                    <button id="delete-friend-btn" class="header-action-btn" title="删除好友"><i class="fa-solid fa-user-minus"></i></button>
+                </div>
+                <div class="messages" id="messages"></div>
+                <form class="message-input-area" id="message-form">
+                    <input type="text" id="message-input" placeholder="输入消息..." autocomplete="off" required>
+                    <button type="submit" id="send-button"><i class="fa-solid fa-paper-plane"></i></button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 添加好友弹窗 -->
+    <div id="add-friend-modal" class="modal-wrapper hidden">
+        <div class="modal-content">
+            <h3>添加好友</h3>
+            <form id="add-friend-form">
+                <input type="text" id="add-friend-input" placeholder="输入对方的用户名" required>
+                <div class="modal-actions">
+                    <button type="button" id="cancel-add-friend">取消</button>
+                    <button type="submit">发送请求</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 右键菜单 -->
+    <div id="context-menu" class="context-menu">
+        <ul><li id="recall-option">撤回消息</li></ul>
+    </div>
+
+    <!-- 提示框 -->
+    <div id="toast" class="toast"></div>
+
+    <script src="client.js"></script>
+</body>
+</html>
