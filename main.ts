@@ -4,7 +4,7 @@ import { serve } from "std/http/server.ts";
 import { serveDir } from "std/http/file_server.ts";
 
 // --- 配置 ---
-const ENCRYPTION_KEY = "Key-qgejDhsjTiuYenfhGFbFjkImghFn"; // 已更新为你指定的密钥
+const ENCRYPTION_KEY = "Key-qgejDhsjTiuYenfhGFbFjkImghFn";
 const RECALL_TIMEOUT_MS = 3 * 60 * 1000;
 
 // --- 数据库和 WebSocket 管理 ---
@@ -236,3 +236,4 @@ async function handler(req: Request): Promise<Response> {
 
 console.log("🚀 聊天服务器已启动，访问 http://localhost:8000");
 serve(handler, { port: 8000 });
+
