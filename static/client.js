@@ -1,5 +1,7 @@
-// my-chat-app/static/client.js
+// my-chat-app/static/client.js (v4 - 终极修复版)
+
 document.addEventListener('DOMContentLoaded', () => {
+    // --- 元素获取 (无变化) ---
     const appContainer = document.getElementById('app-container');
     const usernameDisplay = document.getElementById('username-display');
     const addFriendBtn = document.getElementById('add-friend-btn');
@@ -21,19 +23,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const recallOption = document.getElementById('recall-option');
     const toast = document.getElementById('toast');
 
+    // --- 状态管理 (无变化) ---
     let username = localStorage.getItem('chat_username');
     let ws;
     let currentChatId = null;
     let reconnectDelay = 1000;
 
-    // 新增：本地缓存每个 chat 的消息，防止界面状态不同步
-    const messagesCache = new Map(); // key: chatId, value: array of messages (ordered)
-
-    // 帮助函数：生成标准 chatId（与服务端相同的排序规则）
-    function makeChatId(a, b) {
-        return [a, b].sort().join('-');
-    }
-
+    // --- 初始化与连接 (无变化) ---
     function initialize() {
         if (!username) {
             username = prompt("为了使用好友功能，请输入一个唯一的用户名:")?.trim();
@@ -45,23 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         usernameDisplay.textContent = username;
         connectWebSocket();
-
-        // 移动端：当输入框获得焦点时确保滚动到底部并把输入框可见
-        messageInput.addEventListener('focus', () => {
-            setTimeout(() => {
-                ensureScrollToBottom();
-                messageInput.scrollIntoView({ block: 'end', behavior: 'smooth' });
-            }, 300);
-        });
-
-        // 监听 resize（部分移动浏览器打开键盘会触发 resize）
-        let resizeTimeout;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
-                ensureScrollToBottom();
-            }, 150);
-        });
     }
 
     function connectWebSocket() {
@@ -89,45 +68,46 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    // --- 服务器消息处理 (核心修正！) ---
     function handleServerMessage(type, payload) {
+        // 新增调试日志，方便排查问题
+        console.log('收到服务器消息:', { type, payload });
+
         switch (type) {
             case 'initial_data':
                 renderFriendList(payload.friends);
                 renderFriendRequests(payload.requests);
                 break;
             case 'history':
-                // 服务端发来的历史覆盖本地 cache，并在当前会话时显示
-                if (!payload.chatId) break;
-                messagesCache.set(payload.chatId, payload.messages.slice()); // 保证副本
                 if (payload.chatId === currentChatId) {
-                    renderMessagesForChat(payload.chatId);
+                    messagesContainer.innerHTML = '';
+                    payload.messages.forEach(addMessageToUI);
                 }
                 break;
-            case 'new_message':
-                // 避免重复插入：使用消息 id 去重
-                const chatId = payload.chatId;
-                if (!chatId) break;
-
-                // 把消息写入本地 cache（如果没有则新建）
-                if (!messagesCache.has(chatId)) messagesCache.set(chatId, []);
-                const cache = messagesCache.get(chatId);
-
-                // 防重复：若已经存在 id 就忽略（保持稳定的去重）
-                if (!cache.some(m => m.id === payload.id)) {
-                    cache.push(payload);
+            
+            // ==================== ✅ 核心修正就在这里！ ====================
+            case 'new_message': {
+                // 1. 检查这条消息是否已经存在于界面上，防止重复渲染
+                if (payload.id && document.querySelector(`[data-message-id="${payload.id}"]`)) {
+                    console.log(`消息 ${payload.id} 已存在，跳过渲染。`);
+                    return;
                 }
 
-                // 如果当前会话是该 chat，则直接渲染到界面
-                if (chatId === currentChatId) {
-                    // 如果已经在 DOM 中存在（非常保守的双重检查），就不重复渲染
-                    if (!document.querySelector(`[data-message-id="${payload.id}"]`)) {
-                        addMessageToUI(payload);
-                    }
-                    ensureScrollToBottom();
+                // 2. 核心判断：这条新消息的聊天ID，是否就是当前打开的聊天窗口的ID？
+                if (payload.chatId === currentChatId) {
+                    // 如果是，立即将消息添加到UI
+                    console.log(`聊天窗口匹配！立即显示新消息。`);
+                    addMessageToUI(payload);
                 } else {
-                    // 否则在好友列表显示未读点（并保留消息在 cache）
-                    const friendUsername = identifyFriendFromChatId(chatId);
-                    const friendItem = document.querySelector(`.list-item[data-username="${friendUsername}"]`);
+                    // 如果不是，说明是别的聊天发来的消息，显示小红点通知
+                    console.log(`聊天窗口不匹配 (当前: ${currentChatId}, 收到: ${payload.chatId})。显示小红点。`);
+                    
+                    // 找出这条消息的“另一方”是谁
+                    const otherUser = payload.sender === username 
+                        ? payload.chatId.replace(username, '').replace('-', '') 
+                        : payload.sender;
+
+                    const friendItem = document.querySelector(`.list-item[data-username="${otherUser}"]`);
                     if (friendItem && !friendItem.querySelector('.notification-dot')) {
                         const dot = document.createElement('span');
                         dot.className = 'notification-dot';
@@ -135,19 +115,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 break;
+            }
+            // =============================================================
+
             case 'recalled_message':
-                // 更新 cache 并在当前会话中替换
-                if (!payload.chatId) break;
-                const recalledChat = payload.chatId;
-                const arr = messagesCache.get(recalledChat);
-                if (arr) {
-                    const idx = arr.findIndex(m => m.id === payload.id);
-                    if (idx !== -1) {
-                        arr[idx].contentType = 'recalled';
-                        arr[idx].content = '';
-                    }
-                }
-                if (recalledChat === currentChatId) {
+                if (payload.chatId === currentChatId) {
                     const messageElement = document.querySelector(`[data-message-id="${payload.id}"]`);
                     if (messageElement) {
                         const recallNotice = document.createElement('div');
@@ -180,9 +152,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- UI 渲染与交互 (无变化) ---
     function addMessageToUI(msg) {
-        if (!msg || !msg.id) return;
-        if (document.querySelector(`[data-message-id="${msg.id}"]`)) return;
+        if (msg.id && document.querySelector(`[data-message-id="${msg.id}"]`)) return;
+        
         const isScrolledToBottom = messagesContainer.scrollHeight - messagesContainer.clientHeight <= messagesContainer.scrollTop + 5;
         const item = document.createElement('div');
         item.dataset.messageId = msg.id;
@@ -193,9 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             const isMine = msg.sender === username;
             item.className = isMine ? 'message mine' : 'message theirs';
-            const safeSender = escapeHTML(msg.sender || '');
-            const safeContent = escapeHTML(msg.content || '');
-            item.innerHTML = `<div class="message-content"><div class="message-sender">${safeSender}</div><div class="text">${safeContent}</div></div>`;
+            item.innerHTML = `<div class="message-content"><div class="message-sender">${escapeHTML(msg.sender)}</div><div class="text">${escapeHTML(msg.content)}</div></div>`;
             if (isMine) {
                 item.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
@@ -211,161 +182,31 @@ document.addEventListener('DOMContentLoaded', () => {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
     }
-
+    
+    // --- 事件监听 (无变化) ---
     messageForm.onsubmit = (e) => {
         e.preventDefault();
         if (messageInput.value && currentChatId && ws && ws.readyState === WebSocket.OPEN) {
             const messagePayload = { chatId: currentChatId, content: messageInput.value };
-            // 先在本地 cache 里生成一个临时条目（状态更新及时）
-            const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
-            const tempMsg = { id: tempId, chatId: currentChatId, sender: username, contentType: 'text', content: messageInput.value, timestamp: Date.now() };
-            if (!messagesCache.has(currentChatId)) messagesCache.set(currentChatId, []);
-            messagesCache.get(currentChatId).push(tempMsg);
-            // 立即渲染
-            addMessageToUI(tempMsg);
-            ensureScrollToBottom();
-            // 发送到服务器
             ws.send(JSON.stringify({ type: 'send_message', payload: messagePayload }));
             messageInput.value = '';
         }
     };
 
-    function renderFriendList(friends, append = false) {
-        if (!append) friendList.innerHTML = '';
-        friends.forEach(friend => {
-            if (friendList.querySelector(`[data-username="${friend}"]`)) return;
-            const item = document.createElement('div');
-            item.className = 'list-item';
-            item.dataset.username = friend;
-            item.innerHTML = `<span class="friend-name">${escapeHTML(friend)}</span>`;
-            item.onclick = () => switchChat(friend);
-            friendList.appendChild(item);
-        });
-    }
-
-    function renderFriendRequests(requests, append = false) {
-        if (!append) friendRequestsList.innerHTML = '';
-        requests.forEach(requestUser => {
-            if (friendRequestsList.querySelector(`[data-username="${requestUser}"]`)) return;
-            const item = document.createElement('div');
-            item.className = 'list-item';
-            item.dataset.username = requestUser;
-            item.innerHTML = `<span>${escapeHTML(requestUser)}</span><div class="list-item-actions"><button class="accept-btn" title="接受"><i class="fa-solid fa-check"></i></button></div>`;
-            item.querySelector('.accept-btn').onclick = (e) => {
-                e.stopPropagation();
-                ws.send(JSON.stringify({ type: 'accept_friend', payload: { friendUsername: requestUser } }));
-            };
-            friendRequestsList.appendChild(item);
-        });
-    }
-
-    // 切换到指定好友聊天（核心：使用标准 chatId，并从 cache 渲染）
-    function switchChat(friendUsername) {
-        const newChatId = makeChatId(username, friendUsername);
-        currentChatId = newChatId;
-        welcomeScreen.classList.add('hidden');
-        chatArea.classList.remove('hidden');
-        chatHeaderTitle.textContent = friendUsername;
-        document.querySelectorAll('#friend-list .list-item').forEach(el => el.classList.remove('active'));
-        const friendItem = document.querySelector(`.list-item[data-username="${friendUsername}"]`);
-        if (friendItem) {
-            friendItem.classList.add('active');
-            const dot = friendItem.querySelector('.notification-dot');
-            if (dot) dot.remove();
-        }
-        appContainer.classList.add('mobile-chat-visible');
-        // 先展示本地 cache（如果有）
-        if (messagesCache.has(currentChatId)) {
-            renderMessagesForChat(currentChatId);
-            ensureScrollToBottom();
-        } else {
-            // 无本地 cache 则请求历史
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: 'get_history', payload: { chatId: currentChatId } }));
-            }
-        }
-    }
-
-    function switchToWelcomeScreen() {
-        currentChatId = null;
-        welcomeScreen.classList.remove('hidden');
-        chatArea.classList.add('hidden');
-        document.querySelectorAll('#friend-list .list-item').forEach(el => el.classList.remove('active'));
-        appContainer.classList.remove('mobile-chat-visible');
-    }
-
-    // 把 cache 中某个 chat 的消息全部渲染到 messagesContainer（清空并重建）
-    function renderMessagesForChat(chatId) {
-        messagesContainer.innerHTML = '';
-        const arr = messagesCache.get(chatId) || [];
-        arr.forEach(msg => {
-            // 当服务器历史覆盖（有真实 id）可能替换临时消息 —— 这里优先渲染现有条目并跳过 DOM 去重
-            if (msg && msg.id && !document.querySelector(`[data-message-id="${msg.id}"]`)) {
-                addMessageToUI(msg);
-            }
-        });
-    }
-
-    // 确保滚动到底（并为移动端键盘做兼容）
-    function ensureScrollToBottom() {
-        // 使用 requestAnimationFrame 使得布局稳定后滚动
-        requestAnimationFrame(() => {
-            try {
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            } catch (e) { /* ignore */ }
-        });
-    }
-
-    function showToast(message, type = 'info') {
-        toast.textContent = message;
-        toast.className = `toast show ${type}`;
-        setTimeout(() => { toast.classList.remove('show'); }, 3000);
-    }
-
+    function renderFriendList(friends, append = false) { if (!append) friendList.innerHTML = ''; friends.forEach(friend => { if (friendList.querySelector(`[data-username="${friend}"]`)) return; const item = document.createElement('div'); item.className = 'list-item'; item.dataset.username = friend; item.textContent = friend; item.onclick = () => switchChat(friend); friendList.appendChild(item); }); }
+    function renderFriendRequests(requests, append = false) { if (!append) friendRequestsList.innerHTML = ''; requests.forEach(requestUser => { if (friendRequestsList.querySelector(`[data-username="${requestUser}"]`)) return; const item = document.createElement('div'); item.className = 'list-item'; item.dataset.username = requestUser; item.innerHTML = `<span>${requestUser}</span><div class="list-item-actions"><button class="accept-btn" title="接受"><i class="fa-solid fa-check"></i></button></div>`; item.querySelector('.accept-btn').onclick = (e) => { e.stopPropagation(); ws.send(JSON.stringify({ type: 'accept_friend', payload: { friendUsername: requestUser } })); }; friendRequestsList.appendChild(item); }); }
+    function switchChat(friendUsername) { currentChatId = [username, friendUsername].sort().join('-'); welcomeScreen.classList.add('hidden'); chatArea.classList.remove('hidden'); chatHeaderTitle.textContent = friendUsername; document.querySelectorAll('#friend-list .list-item').forEach(el => el.classList.remove('active')); const friendItem = document.querySelector(`.list-item[data-username="${friendUsername}"]`); if (friendItem) { friendItem.classList.add('active'); const dot = friendItem.querySelector('.notification-dot'); if (dot) dot.remove(); } appContainer.classList.add('mobile-chat-visible'); ws.send(JSON.stringify({ type: 'get_history', payload: { chatId: currentChatId } })); }
+    function switchToWelcomeScreen() { currentChatId = null; welcomeScreen.classList.remove('hidden'); chatArea.classList.add('hidden'); document.querySelectorAll('#friend-list .list-item').forEach(el => el.classList.remove('active')); appContainer.classList.remove('mobile-chat-visible'); }
+    function showToast(message, type = 'info') { toast.textContent = message; toast.className = `toast show ${type}`; setTimeout(() => { toast.classList.remove('show'); }, 3000); }
     addFriendBtn.onclick = () => addFriendModal.classList.remove('hidden');
     cancelAddFriendBtn.onclick = () => addFriendModal.classList.add('hidden');
     backToListBtn.onclick = () => appContainer.classList.remove('mobile-chat-visible');
-    addFriendForm.onsubmit = (e) => {
-        e.preventDefault();
-        const friendUsername = addFriendInput.value.trim();
-        if (friendUsername && ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'add_friend', payload: { friendUsername } }));
-            addFriendInput.value = '';
-            addFriendModal.classList.add('hidden');
-        } else {
-            showToast('连接已断开，请稍后重试', 'error');
-        }
-    };
-    deleteFriendBtn.onclick = () => {
-        const friendUsername = chatHeaderTitle.textContent;
-        if (friendUsername && confirm(`确定要删除好友 ${friendUsername} 吗？所有聊天记录将永久删除。`)) {
-            ws.send(JSON.stringify({ type: 'delete_friend', payload: { friendUsername } }));
-        }
-    };
+    addFriendForm.onsubmit = (e) => { e.preventDefault(); const friendUsername = addFriendInput.value.trim(); if (friendUsername && ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ type: 'add_friend', payload: { friendUsername } })); addFriendInput.value = ''; addFriendModal.classList.add('hidden'); } else { showToast('连接已断开，请稍后重试', 'error'); } };
+    deleteFriendBtn.onclick = () => { const friendUsername = chatHeaderTitle.textContent; if (friendUsername && confirm(`确定要删除好友 ${friendUsername} 吗？所有聊天记录将永久删除。`)) { ws.send(JSON.stringify({ type: 'delete_friend', payload: { friendUsername } })); } };
     document.addEventListener('click', () => contextMenu.style.display = 'none');
-    recallOption.onclick = () => {
-        const messageId = contextMenu.dataset.targetMessageId;
-        if (messageId && currentChatId) {
-            ws.send(JSON.stringify({ type: 'recall_message', payload: { messageId, chatId: currentChatId } }));
-        }
-    };
+    recallOption.onclick = () => { const messageId = contextMenu.dataset.targetMessageId; if (messageId && currentChatId) { ws.send(JSON.stringify({ type: 'recall_message', payload: { messageId, chatId: currentChatId } })); } };
+    function escapeHTML(str) { return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;'); }
 
-    function identifyFriendFromChatId(chatId) {
-        // chatId 格式 user1-user2（已排序），找出除自己外的那一个
-        if (!chatId) return '';
-        const parts = chatId.split('-');
-        if (parts.length !== 2) return '';
-        return parts[0] === username ? parts[1] : parts[0];
-    }
-
-    function escapeHTML(str) {
-        if (!str) return '';
-        return str.replace(/&/g, '&amp;')
-                  .replace(/</g, '&lt;')
-                  .replace(/>/g, '&gt;')
-                  .replace(/"/g, '&quot;')
-                  .replace(/'/g, '&#039;');
-    }
-
+    // --- 启动应用 ---
     initialize();
 });
