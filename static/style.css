@@ -75,18 +75,17 @@ body {
 .notification-dot { width: 8px; height: 8px; background-color: var(--primary-color); border-radius: 50%; margin-left: auto; }
 
 /* --- Chat Window --- */
-.chat-window { flex-grow: 1; display: flex; flex-direction: column; background-color: var(--chat-window-bg); overflow: hidden; /* 防止子元素溢出 */ }
+.chat-window { flex-grow: 1; display: flex; flex-direction: column; background-color: var(--chat-window-bg); overflow: hidden; }
 #welcome-screen { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--text-color-light); text-align: center; }
 #welcome-screen i { font-size: 4em; margin-bottom: 20px; }
-#chat-area { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; /* 关键：确保聊天区域填满并能控制内部滚动 */ }
-#chat-area.hidden, .hidden { display: none !important; }
-.chat-window .header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; height: 65px; font-weight: 500; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+.hidden { display: none !important; }
+#chat-area { flex-grow: 1; display: flex; flex-direction: column; height: 100%; }
+.chat-window .header { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; height: 65px; font-weight: 500; border-bottom: 1px solid var(--border-color); }
 .header-action-btn { background: none; border: none; font-size: 1.2em; color: var(--text-color-light); cursor: pointer; padding: 10px; }
 #delete-friend-btn:hover { color: var(--error-color); }
 .mobile-only { display: none; }
-/* 关键布局修复：让消息列表可滚动，输入框固定底部 */
-.messages { flex-grow: 1; /* 占据所有可用空间 */ padding: 20px; overflow-y: auto; /* 内部滚动 */ display: flex; flex-direction: column; }
-.message-input-area { display: flex; padding: 15px; border-top: 1px solid var(--border-color); flex-shrink: 0; /* 防止被压缩 */ }
+.messages { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; }
+.message-input-area { flex-shrink: 0; display: flex; padding: 15px; border-top: 1px solid var(--border-color); }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .message { max-width: 70%; margin-bottom: 15px; animation: fadeIn 0.3s ease-out; word-wrap: break-word; }
 .message.mine { align-self: flex-end; background-color: var(--my-message-bg); border-radius: 15px 15px 4px 15px; }
@@ -100,7 +99,7 @@ body {
 #send-button { background-color: var(--primary-color); color: white; border: none; border-radius: 50%; width: 45px; height: 45px; margin-left: 10px; cursor: pointer; transition: background-color 0.2s; font-size: 1.2em; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
 #send-button:hover { background-color: var(--primary-color-dark); }
 
-/* --- Modal, Context Menu, Toast (保持不变) --- */
+/* --- Modal, Context Menu, Toast --- */
 .modal-wrapper { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: center; z-index: 1001; }
 .modal-content { background: white; padding: 25px; border-radius: var(--border-radius); box-shadow: 0 5px 15px rgba(0,0,0,0.2); width: 90%; max-width: 400px; }
 .modal-content h3 { margin-top: 0; }
@@ -116,7 +115,7 @@ body {
 .toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); background-color: rgba(44, 62, 80, 0.9); color: white; padding: 12px 25px; border-radius: 25px; transition: bottom 0.5s ease; z-index: 2000; }
 .toast.show { bottom: 30px; }
 
-/* --- 手机端响应式样式 (保持不变) --- */
+/* --- 手机端响应式样式 --- */
 @media (max-width: 768px) {
     #app-container { max-height: 100vh; border-radius: 0; flex-direction: column; }
     .sidebar, .chat-window { width: 100%; height: 100%; position: absolute; top: 0; left: 0; transition: transform 0.3s ease-in-out; }
