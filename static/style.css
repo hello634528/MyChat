@@ -23,6 +23,10 @@
     --box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
+html, body {
+    height: 100%;
+}
+
 body {
     font-family: var(--font-family);
     background-color: var(--bg-color);
@@ -80,12 +84,31 @@ body {
 #welcome-screen i { font-size: 4em; margin-bottom: 20px; }
 .hidden { display: none !important; }
 #chat-area { flex-grow: 1; display: flex; flex-direction: column; height: 100%; }
-.chat-window .header { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; height: 65px; font-weight: 500; border-bottom: 1px solid var(--border-color); }
+.chat-window .header { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; height: 65px; font-weight: 500; border-bottom: 1px solid var(--border-color); background: var(--header-bg); }
 .header-action-btn { background: none; border: none; font-size: 1.2em; color: var(--text-color-light); cursor: pointer; padding: 10px; }
 #delete-friend-btn:hover { color: var(--error-color); }
 .mobile-only { display: none; }
-.messages { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; }
-.message-input-area { flex-shrink: 0; display: flex; padding: 15px; border-top: 1px solid var(--border-color); }
+
+/* messages 区域：保证在移动端键盘弹出时不会被遮挡（通过 padding-bottom） */
+.messages { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; padding-bottom: calc(20px + 80px + env(safe-area-inset-bottom)); }
+
+/* 固定/粘性输入区域，避免被键盘遮挡 */
+.message-input-area {
+    flex-shrink: 0;
+    display: flex;
+    padding: 12px 15px;
+    border-top: 1px solid var(--border-color);
+    background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,1));
+    position: sticky;
+    bottom: 0;
+    z-index: 60;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 -6px 18px rgba(0,0,0,0.03);
+    /* 为安全区预留空间 */
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .message { max-width: 70%; margin-bottom: 15px; animation: fadeIn 0.3s ease-out; word-wrap: break-word; }
 .message.mine { align-self: flex-end; background-color: var(--my-message-bg); border-radius: 15px 15px 4px 15px; }
@@ -94,7 +117,7 @@ body {
 .message-sender { font-size: 0.8em; font-weight: 500; color: var(--primary-color); margin-bottom: 5px; }
 .message.theirs .message-sender { color: #34495e; }
 .message-recalled { color: var(--text-color-light); font-size: 0.9em; text-align: center; margin: 10px 0; }
-#message-input { flex-grow: 1; border: 1px solid var(--border-color); border-radius: 20px; padding: 12px 18px; font-size: 1em; outline: none; transition: border-color 0.2s; }
+#message-input { flex-grow: 1; border: 1px solid var(--border-color); border-radius: 20px; padding: 12px 18px; font-size: 1em; outline: none; transition: border-color 0.2s; box-sizing: border-box; }
 #message-input:focus { border-color: var(--primary-color); }
 #send-button { background-color: var(--primary-color); color: white; border: none; border-radius: 50%; width: 45px; height: 45px; margin-left: 10px; cursor: pointer; transition: background-color 0.2s; font-size: 1.2em; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
 #send-button:hover { background-color: var(--primary-color-dark); }
