@@ -1,4 +1,4 @@
-// my-chat-app/main.ts
+// my-chat-app/main.ts (v5 - 决定性修复版)
 
 import { serve } from "std/http/server.ts";
 import { serveDir } from "std/http/file_server.ts";
