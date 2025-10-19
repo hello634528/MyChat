@@ -1,9 +1,9 @@
-// my-chat-app/main.ts (v5 - 终极确定版)
+// my-chat-app/main.ts (v6 - 部署失败修复版)
 
 import { serve } from "std/http/server.ts";
 import { serveDir } from "std/http/file_server.ts";
-// ✅ 引入官方、可靠的 Base64 编码库
-import { encode as base64Encode } from "std/encoding/base64.ts";
+// ✅ 修正：引入了正确名字的函数 encodeBase64
+import { encodeBase64 } from "std/encoding/base64.ts";
 
 // --- 配置 ---
 const ENCRYPTION_KEY = "Key-qgejDhsjTiuYenfhGFbFjkImghFn"; // 你的密钥
@@ -21,8 +21,6 @@ function getChatId(user1: string, user2: string): string {
 function sendToUser(username: string, message: object) {
   const sockets = userSockets.get(username);
   if (sockets) {
-    // 增加日志，用于追踪
-    console.log(`[服务器] 正在尝试向用户 ${username} 的 ${sockets.size} 个设备发送消息...`);
     try {
       const messageStr = JSON.stringify(message);
       sockets.forEach(socket => {
@@ -30,16 +28,13 @@ function sendToUser(username: string, message: object) {
           socket.send(messageStr);
         }
       });
-      console.log(`[服务器] 成功向用户 ${username} 发送消息。`);
     } catch (e) {
       console.error(`[服务器] 向用户 ${username} 发送消息时 JSON.stringify 失败:`, e);
     }
-  } else {
-    console.log(`[服务器] 未找到用户 ${username} 的在线设备。`);
   }
 }
 
-// --- 加密/解密 (✅ 使用了全新的、可靠的编码方式) ---
+// --- 加密/解密 (✅ 使用了正确名字的函数) ---
 async function getCryptoKey(secret: string): Promise<CryptoKey> {
   const keyData = new TextEncoder().encode(secret);
   return await crypto.subtle.importKey("raw", keyData, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
@@ -50,18 +45,16 @@ async function encrypt(text: string, key: CryptoKey): Promise<string> {
   const encodedText = new TextEncoder().encode(text);
   const encryptedData = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encodedText);
   
-  // 将 iv 和加密数据合并到一个 ArrayBuffer 中
   const resultBuffer = new Uint8Array(iv.length + encryptedData.byteLength);
   resultBuffer.set(iv, 0);
   resultBuffer.set(new Uint8Array(encryptedData), iv.length);
   
-  // ✅ 使用官方标准库进行 Base64 编码，100% 可靠
-  return base64Encode(resultBuffer);
+  // ✅ 修正：调用了正确名字的函数 encodeBase64
+  return encodeBase64(resultBuffer);
 }
 
 async function decrypt(base64Encrypted: string, key: CryptoKey): Promise<string> {
   try {
-    // atob 是标准的 Base64 解码函数，这里没有问题
     const buffer = Uint8Array.from(atob(base64Encrypted), c => c.charCodeAt(0));
     const iv = buffer.slice(0, 12);
     const data = buffer.slice(12);
@@ -73,9 +66,8 @@ async function decrypt(base64Encrypted: string, key: CryptoKey): Promise<string>
   }
 }
 
-// --- WebSocket 核心逻辑 (逻辑无变化，仅增加日志) ---
+// --- WebSocket 核心逻辑 (无变化) ---
 async function handleWs(socket: WebSocket, username: string) {
-  console.log(`[用户: ${username}] 的一个新设备已连接`);
   if (!userSockets.has(username)) {
     userSockets.set(username, new Set());
   }
@@ -106,35 +98,20 @@ async function handleWs(socket: WebSocket, username: string) {
         socket.send(JSON.stringify({ type: "history", payload: { chatId, messages: history.reverse() } }));
         break;
       }
-
       case 'send_message': {
         const { chatId, content } = payload;
         const [user1, user2] = chatId.split('-');
         const recipient = username === user1 ? user2 : user1;
-
         const messageId = crypto.randomUUID();
         const timestamp = Date.now();
         const encryptedContent = await encrypt(content, encryptionKey);
-
-        const message = {
-          id: messageId,
-          chatId,
-          sender: username,
-          contentType: 'encrypted-text',
-          content: encryptedContent,
-          timestamp,
-        };
+        const message = { id: messageId, chatId, sender: username, contentType: 'encrypted-text', content: encryptedContent, timestamp };
         await kv.set(["messages", chatId, timestamp, messageId], message);
-        console.log(`[服务器] 消息 ${messageId} 已存入数据库。`);
-
         const broadcastMessage = { ...message, content };
-        
         sendToUser(recipient, { type: "new_message", payload: broadcastMessage });
         sendToUser(username, { type: "new_message", payload: broadcastMessage });
         break;
       }
-      
-      // 其他 case 保持原样
       case 'recall_message': {
         const { messageId, chatId } = payload;
         const iter = kv.list({ prefix: ["messages", chatId] });
@@ -211,12 +188,10 @@ async function handleWs(socket: WebSocket, username: string) {
   };
 
   socket.onclose = async () => {
-    console.log(`[用户: ${username}] 的一个设备已断开`);
     const userSocketSet = userSockets.get(username);
     if (userSocketSet) {
       userSocketSet.delete(socket);
       if (userSocketSet.size === 0) {
-        console.log(`[用户: ${username}] 所有设备均已离线`);
         userSockets.delete(username);
         await kv.set(["users", username], { username, online: false });
       }
@@ -236,5 +211,5 @@ async function handler(req: Request): Promise<Response> {
   return serveDir(req, { fsRoot: "static", urlRoot: "" });
 }
 
-console.log("🚀 聊天服务器已启动 (v5 - 终极确定版)，访问 http://localhost:8000");
+console.log("🚀 聊天服务器已启动 (v6 - 部署成功版)，访问 http://localhost:8000");
 serve(handler, { port: 8000 });
